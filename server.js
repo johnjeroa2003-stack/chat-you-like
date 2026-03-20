@@ -1,24 +1,31 @@
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+
 const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http, {
-  cors: { origin: "*" },
-});
+const server = http.createServer(app);
+const io = new Server(server);
 
 app.use(express.static("public"));
 
-let users = [];
+let waitingUser = null;
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  socket.partner = null;
+  if (waitingUser) {
+    // Connect both users
+    socket.partner = waitingUser;
+    waitingUser.partner = socket;
 
-  // Add user to list
-  users.push(socket);
+    socket.emit("connected");
+    waitingUser.emit("connected");
 
-  // Try to match
-  matchUsers();
+    waitingUser = null;
+  } else {
+    waitingUser = socket;
+    socket.emit("waiting");
+  }
 
   // Send message
   socket.on("send-message", (msg) => {
@@ -30,53 +37,45 @@ io.on("connection", (socket) => {
   // Next user
   socket.on("next", () => {
     if (socket.partner) {
-      socket.partner.partner = null;
       socket.partner.emit("disconnected");
+      socket.partner.partner = null;
     }
 
     socket.partner = null;
 
-    if (!users.includes(socket)) {
-      users.push(socket);
+    if (waitingUser === socket) {
+      waitingUser = null;
     }
 
-    matchUsers();
+    if (waitingUser) {
+      socket.partner = waitingUser;
+      waitingUser.partner = socket;
+
+      socket.emit("connected");
+      waitingUser.emit("connected");
+
+      waitingUser = null;
+    } else {
+      waitingUser = socket;
+      socket.emit("waiting");
+    }
   });
 
   // Disconnect
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-
     if (socket.partner) {
-      socket.partner.partner = null;
       socket.partner.emit("disconnected");
+      socket.partner.partner = null;
     }
 
-    users = users.filter((user) => user !== socket);
+    if (waitingUser === socket) {
+      waitingUser = null;
+    }
+
+    console.log("User disconnected:", socket.id);
   });
 });
 
-// 🔥 MATCHING FUNCTION (FIXED)
-function matchUsers() {
-  while (users.length >= 2) {
-    let user1 = users.shift();
-    let user2 = users.shift();
-
-    user1.partner = user2;
-    user2.partner = user1;
-
-    user1.emit("connected");
-    user2.emit("connected");
-  }
-
-  // If one user left alone
-  if (users.length === 1) {
-    users[0].emit("waiting");
-  }
-}
-
-const PORT = process.env.PORT || 3000;
-
-http.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+server.listen(3000, () => {
+  console.log("Server running on port 3000");
 });

@@ -1,31 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Chat You Like</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<script src="/socket.io/socket.io.js"></script>
 
-<h1>🔥 Chat You Like</h1>
-
-<div id="status">Connecting...</div>
-
-<div id="chat"></div>
-
-<div class="input-box">
-  <input id="msg" placeholder="Type message..." />
-  <button onclick="sendMsg()">Send</button>
-  <button onclick="nextUser()">Next</button>
-</div>
-
-<!-- ✅ PASTE YOUR CODE HERE -->
 <script>
+const socket = io(); // ✅ NO URL here
+
 const chat = document.getElementById("chat");
 const status = document.getElementById("status");
-
-socket.on("connect", () => {
-  console.log("Connected:", socket.id);
-});
 
 socket.on("waiting", () => {
   status.innerText = "⏳ Waiting for stranger...";
@@ -67,6 +46,3 @@ function addMessage(msg) {
   chat.scrollTop = chat.scrollHeight;
 }
 </script>
-
-</body>
-</html>
