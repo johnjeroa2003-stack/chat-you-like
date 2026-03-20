@@ -1,7 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat You Like</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    #chat {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #444;
+      margin: 20px;
+      padding: 10px;
+      background: #222;
+    }
+
+    .input-box {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+    }
+
+    input {
+      width: 60%;
+      padding: 10px;
+    }
+
+    button {
+      padding: 10px;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🔥 Chat You Like</h1>
+<div id="status">Connecting...</div>
+
+<div id="chat"></div>
+
+<div class="input-box">
+  <input id="msg" placeholder="Type message..." />
+  <button onclick="sendMsg()">Send</button>
+  <button onclick="nextUser()">Next</button>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-const socket = io(); // ✅ NO URL here
+const socket = io();
 
 const chat = document.getElementById("chat");
 const status = document.getElementById("status");
@@ -46,3 +97,6 @@ function addMessage(msg) {
   chat.scrollTop = chat.scrollHeight;
 }
 </script>
+
+</body>
+</html>

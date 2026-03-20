@@ -6,6 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Serve frontend
 app.use(express.static("public"));
 
 let waitingUser = null;
@@ -14,7 +15,6 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   if (waitingUser) {
-    // Connect both users
     socket.partner = waitingUser;
     waitingUser.partner = socket;
 
@@ -27,14 +27,12 @@ io.on("connection", (socket) => {
     socket.emit("waiting");
   }
 
-  // Send message
   socket.on("send-message", (msg) => {
     if (socket.partner) {
       socket.partner.emit("receive-message", msg);
     }
   });
 
-  // Next user
   socket.on("next", () => {
     if (socket.partner) {
       socket.partner.emit("disconnected");
@@ -61,7 +59,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Disconnect
   socket.on("disconnect", () => {
     if (socket.partner) {
       socket.partner.emit("disconnected");
