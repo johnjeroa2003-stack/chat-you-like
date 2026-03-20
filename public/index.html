@@ -1,37 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chat You Like</title>
-    <link rel="stylesheet" href="style.css">
+  <title>Chat You Like</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="username-box">
-    <input id="username" placeholder="Enter your name..." />
+<h1>🔥 Chat You Like</h1>
+
+<div id="status">Connecting...</div>
+
+<div id="chat"></div>
+
+<div class="input-box">
+  <input id="msg" placeholder="Type message..." />
+  <button onclick="sendMsg()">Send</button>
+  <button onclick="nextUser()">Next</button>
 </div>
 
-<div class="app">
+<!-- Socket CDN (IMPORTANT) -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <h2>🔥 Chat You Like</h2>
-        <p class="status">🟢 Online</p>
-    </div>
+<script>
+const socket = io("https://YOUR-RENDER-URL.onrender.com"); // 🔥 CHANGE THIS
 
-    <!-- Chat Area -->
-    <div class="chat-area">
-        <div id="messages" class="messages"></div>
+const chat = document.getElementById("chat");
+const status = document.getElementById("status");
 
-        <form id="form" class="input-area">
-            <input id="input" placeholder="Type a message..." autocomplete="off"/>
-            <button>➤</button>
-        </form>
-    </div>
+socket.on("waiting", () => {
+  status.innerText = "⏳ Waiting for stranger...";
+});
 
-</div>
+socket.on("connected", () => {
+  status.innerText = "✅ Connected to stranger";
+});
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="script.js"></script>
+socket.on("receive-message", (msg) => {
+  addMessage("Stranger: " + msg);
+});
+
+socket.on("disconnected", () => {
+  status.innerText = "❌ Stranger left. Finding new...";
+});
+
+function sendMsg() {
+  const input = document.getElementById("msg");
+  const msg = input.value;
+
+  if (msg.trim() === "") return;
+
+  addMessage("You: " + msg);
+  socket.emit("send-message", msg);
+
+  input.value = "";
+}
+
+function nextUser() {
+  chat.innerHTML = "";
+  socket.emit("next");
+}
+
+function addMessage(msg) {
+  const div = document.createElement("div");
+  div.innerText = msg;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
 
 </body>
 </html>
