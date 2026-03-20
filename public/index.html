@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat You Like</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI';
+            background: linear-gradient(135deg, #141e30, #243b55);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+        }
+
+        .chat-box {
+            width: 400px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 20px;
+        }
+
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        input {
+            width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+        }
+
+        button {
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            background: #ff416c;
+            color: white;
+        }
+
+        p {
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-box">
+    <h2>Chat You Like 💬</h2>
+
+    <div id="messages"></div>
+
+    <input id="msg" placeholder="Type message..." />
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+    const socket = io();
+
+    function sendMessage() {
+        const input = document.getElementById("msg");
+        socket.emit("chat message", input.value);
+        input.value = "";
+    }
+
+    socket.on("chat message", (msg) => {
+        const div = document.getElementById("messages");
+        div.innerHTML += "<p>" + msg + "</p>";
+        div.scrollTop = div.scrollHeight;
+    });
+</script>
+
+</body>
+</html>
