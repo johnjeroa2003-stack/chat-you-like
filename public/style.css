@@ -74,3 +74,15 @@ button {
     border-radius: 50%;
     cursor: pointer;
 }
+
+.username-box {
+    padding: 10px;
+    background: #020617;
+}
+
+.username-box input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+}
