@@ -18,11 +18,11 @@
   <button onclick="nextUser()">Next</button>
 </div>
 
-<!-- Socket CDN (IMPORTANT) -->
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
-const socket = io("https://YOUR-RENDER-URL.onrender.com"); // 🔥 CHANGE THIS
+// ✅ FIXED LINE (VERY IMPORTANT)
+const socket = io("https://chat-you-like.onrender.com");
 
 const chat = document.getElementById("chat");
 const status = document.getElementById("status");

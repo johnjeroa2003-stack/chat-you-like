@@ -7,17 +7,17 @@ const io = require("socket.io")(http, {
   },
 });
 
-// Serve frontend
 app.use(express.static("public"));
 
-// Users queue for stranger chat
 let waitingUser = null;
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Stranger matching
-  if (waitingUser) {
+  socket.partner = null;
+
+  // Match users
+  if (waitingUser && waitingUser !== socket) {
     socket.partner = waitingUser;
     waitingUser.partner = socket;
 
@@ -30,14 +30,18 @@ io.on("connection", (socket) => {
     socket.emit("waiting");
   }
 
-  // Send message
+  // SEND MESSAGE (FIXED)
   socket.on("send-message", (msg) => {
+    console.log("Message:", msg);
+
     if (socket.partner) {
       socket.partner.emit("receive-message", msg);
+    } else {
+      console.log("No partner found!");
     }
   });
 
-  // Next user
+  // NEXT USER
   socket.on("next", () => {
     if (socket.partner) {
       socket.partner.emit("disconnected");
@@ -50,7 +54,7 @@ io.on("connection", (socket) => {
       waitingUser = null;
     }
 
-    if (waitingUser) {
+    if (waitingUser && waitingUser !== socket) {
       socket.partner = waitingUser;
       waitingUser.partner = socket;
 
@@ -64,7 +68,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Disconnect
+  // DISCONNECT
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
 
@@ -79,7 +83,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// IMPORTANT for Render
 const PORT = process.env.PORT || 3000;
 
 http.listen(PORT, () => {
