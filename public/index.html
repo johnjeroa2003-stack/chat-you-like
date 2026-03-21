@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat You Like - New UI</title>
+  <title>Chat You Like - Pro UI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
       font-family: Arial;
-      background: radial-gradient(circle, #1a1a1a, #000);
+      background: #0b141a;
       color: white;
       display: flex;
       flex-direction: column;
@@ -17,99 +17,99 @@
 
     header {
       text-align: center;
-      padding: 10px;
+      padding: 12px;
       font-size: 18px;
-      background: #111;
-      border-bottom: 1px solid #333;
+      background: #202c33;
+      border-bottom: 1px solid #2a3942;
     }
 
     #status {
       text-align: center;
-      font-size: 14px;
-      margin: 5px;
-      color: #aaa;
+      font-size: 13px;
+      padding: 5px;
+      color: #8696a0;
     }
 
     #chat {
       flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 15px;
       padding: 10px;
+      overflow-y: auto;
     }
 
-    .card {
-      max-width: 80%;
-      padding: 15px;
-      border-radius: 15px;
-      background: #222;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      animation: floatIn 0.4s ease;
-      text-align: center;
+    .message {
+      max-width: 70%;
+      padding: 10px 14px;
+      margin: 5px 0;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
     }
 
     .you {
-      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      align-self: flex-end;
+      background: #005c4b;
+      border-bottom-right-radius: 0;
     }
 
     .stranger {
-      background: linear-gradient(135deg, #ff7e5f, #feb47b);
-    }
-
-    @keyframes floatIn {
-      from {
-        transform: translateY(50px) scale(0.8);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
+      align-self: flex-start;
+      background: #202c33;
+      border-bottom-left-radius: 0;
     }
 
     .input-box {
       display: flex;
       padding: 10px;
       gap: 5px;
-      background: #111;
+      background: #202c33;
     }
 
     input {
       flex: 1;
       padding: 12px;
-      border-radius: 10px;
+      border-radius: 20px;
       border: none;
       outline: none;
+      background: #2a3942;
+      color: white;
     }
 
     button {
-      padding: 12px;
+      padding: 10px 15px;
       border: none;
-      border-radius: 10px;
-      background: #00c6ff;
+      border-radius: 50%;
+      background: #00a884;
       color: white;
       cursor: pointer;
+      font-size: 14px;
     }
 
     button:last-child {
       background: #ff4d4d;
+    }
+
+    @media (max-width: 600px) {
+      .message {
+        max-width: 85%;
+      }
     }
   </style>
 </head>
 
 <body>
 
-<header>🚀 Chat You Like - New UI</header>
+<header>💬 Chat You Like</header>
 <div id="status">Connecting...</div>
 
 <div id="chat"></div>
 
 <div class="input-box">
   <input id="msg" placeholder="Type message..." />
-  <button onclick="sendMsg()">Send</button>
-  <button onclick="nextUser()">Next</button>
+  <button onclick="sendMsg()">➤</button>
+  <button onclick="nextUser()">⏭</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -125,7 +125,7 @@ socket.on("waiting", () => {
 });
 
 socket.on("connected", () => {
-  status.innerText = "🔥 Connected";
+  status.innerText = "✅ Connected";
 });
 
 socket.on("receive-message", (msg) => {
@@ -155,15 +155,14 @@ function nextUser() {
 
 function addMessage(msg, type) {
   const div = document.createElement("div");
-  div.classList.add("card", type);
+  div.classList.add("message", type);
   div.innerText = msg;
 
   chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 </script>
 
 </body>
 </html>
-
-
 
