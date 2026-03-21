@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
-let users = {}; // ✅ only ONE users variable
+let users = {}; // username -> socket
 
 const app = express();
 const server = http.createServer(app);
@@ -16,12 +16,44 @@ app.get("/", (req, res) => {
 
 app.use(express.static("public"));
 
+// ----------------------
 // CHAT LOGIC
+// ----------------------
 let waitingUser = null;
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // ✅ Register user
+  socket.on("register", (username) => {
+    socket.username = username;
+    users[username] = socket;
+    console.log(username + " registered");
+  });
+
+  // ----------------------
+  // 🤝 FRIEND REQUEST
+  // ----------------------
+  socket.on("send-friend-request", (toUser) => {
+    const target = users[toUser];
+
+    if (target) {
+      target.emit("friend-request", socket.username);
+    }
+  });
+
+  // Accept friend
+  socket.on("accept-friend", (fromUser) => {
+    const target = users[fromUser];
+
+    if (target) {
+      target.emit("friend-accepted", socket.username);
+    }
+  });
+
+  // ----------------------
+  // 🔀 RANDOM CHAT MATCHING
+  // ----------------------
   if (waitingUser) {
     socket.partner = waitingUser;
     waitingUser.partner = socket;
@@ -35,12 +67,18 @@ io.on("connection", (socket) => {
     socket.emit("waiting");
   }
 
+  // ----------------------
+  // 💬 MESSAGE
+  // ----------------------
   socket.on("send-message", (msg) => {
     if (socket.partner) {
       socket.partner.emit("receive-message", msg);
     }
   });
 
+  // ----------------------
+  // 🔄 NEXT USER
+  // ----------------------
   socket.on("next", () => {
     if (socket.partner) {
       socket.partner.emit("disconnected");
@@ -67,7 +105,14 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ----------------------
+  // ❌ DISCONNECT
+  // ----------------------
   socket.on("disconnect", () => {
+    if (socket.username) {
+      delete users[socket.username];
+    }
+
     if (socket.partner) {
       socket.partner.emit("disconnected");
       socket.partner.partner = null;
@@ -81,6 +126,7 @@ io.on("connection", (socket) => {
   });
 });
 
+// ----------------------
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
