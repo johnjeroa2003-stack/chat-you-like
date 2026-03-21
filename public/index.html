@@ -166,8 +166,8 @@ function sendMsg() {
 
   if (msg.trim() === "") return;
 
-  addMessage(msg, "you");
-  socket.emit("send-message", msg);
+  addMessage(username + ": " + msg, "you");
+  socket.emit("send-message", username + ": " + msg);
 
   input.value = "";
 }
@@ -216,6 +216,11 @@ tsParticles.load("particles", {
     }
   }
 });
+const username = localStorage.getItem("username");
+
+if (!username) {
+  window.location.href = "/login.html";
+}
 </script>
 
 </body>
