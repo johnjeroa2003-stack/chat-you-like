@@ -1,79 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat You Like - New UI</title>
+  <title>Chat You Like - Space UI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
+      overflow: hidden;
       font-family: Arial;
-      background: radial-gradient(circle, #1a1a1a, #000);
+      background: radial-gradient(circle at center, #000010, #000);
       color: white;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
     }
 
     header {
+      position: fixed;
+      top: 0;
+      width: 100%;
       text-align: center;
       padding: 10px;
-      font-size: 18px;
-      background: #111;
-      border-bottom: 1px solid #333;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
+      z-index: 10;
     }
 
     #status {
-      text-align: center;
       font-size: 14px;
-      margin: 5px;
       color: #aaa;
     }
 
     #chat {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 15px;
-      padding: 10px;
+      position: absolute;
+      top: 50px;
+      width: 100%;
+      height: calc(100vh - 120px);
+      overflow: hidden;
     }
 
-    .card {
-      max-width: 80%;
-      padding: 15px;
-      border-radius: 15px;
-      background: #222;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      animation: floatIn 0.4s ease;
-      text-align: center;
+    .bubble {
+      position: absolute;
+      padding: 12px 18px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 15px rgba(255,255,255,0.2);
+      animation: float 6s infinite ease-in-out;
+      max-width: 200px;
+      word-wrap: break-word;
     }
 
     .you {
-      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      background: rgba(0,255,170,0.2);
+      box-shadow: 0 0 20px #00ffaa;
     }
 
     .stranger {
-      background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      background: rgba(255,255,255,0.1);
     }
 
-    @keyframes floatIn {
-      from {
-        transform: translateY(50px) scale(0.8);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0); }
     }
 
     .input-box {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
       display: flex;
       padding: 10px;
-      gap: 5px;
-      background: #111;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
     }
 
     input {
@@ -85,12 +83,13 @@
     }
 
     button {
+      margin-left: 5px;
       padding: 12px;
       border: none;
       border-radius: 10px;
-      background: #00c6ff;
-      color: white;
-      cursor: pointer;
+      background: #00ffaa;
+      color: black;
+      font-weight: bold;
     }
 
     button:last-child {
@@ -101,13 +100,15 @@
 
 <body>
 
-<header>🚀 Chat You Like - New UI</header>
-<div id="status">Connecting...</div>
+<header>
+  🚀 Space Chat  
+  <div id="status">Connecting...</div>
+</header>
 
 <div id="chat"></div>
 
 <div class="input-box">
-  <input id="msg" placeholder="Type message..." />
+  <input id="msg" placeholder="Send a signal..." />
   <button onclick="sendMsg()">Send</button>
   <button onclick="nextUser()">Next</button>
 </div>
@@ -116,24 +117,23 @@
 
 <script>
 const socket = io();
-
 const chat = document.getElementById("chat");
 const status = document.getElementById("status");
 
 socket.on("waiting", () => {
-  status.innerText = "⏳ Waiting for stranger...";
+  status.innerText = "🛰 Searching...";
 });
 
 socket.on("connected", () => {
-  status.innerText = "🔥 Connected";
+  status.innerText = "🌌 Connected";
 });
 
 socket.on("receive-message", (msg) => {
-  addMessage(msg, "stranger");
+  createBubble(msg, "stranger");
 });
 
 socket.on("disconnected", () => {
-  status.innerText = "❌ Stranger left...";
+  status.innerText = "🚫 Lost signal...";
 });
 
 function sendMsg() {
@@ -142,7 +142,7 @@ function sendMsg() {
 
   if (msg.trim() === "") return;
 
-  addMessage(msg, "you");
+  createBubble(msg, "you");
   socket.emit("send-message", msg);
 
   input.value = "";
@@ -153,10 +153,14 @@ function nextUser() {
   socket.emit("next");
 }
 
-function addMessage(msg, type) {
+function createBubble(text, type) {
   const div = document.createElement("div");
-  div.classList.add("card", type);
-  div.innerText = msg;
+  div.classList.add("bubble", type);
+  div.innerText = text;
+
+  // Random position
+  div.style.left = Math.random() * 70 + "%";
+  div.style.top = Math.random() * 70 + "%";
 
   chat.appendChild(div);
 }
@@ -164,6 +168,5 @@ function addMessage(msg, type) {
 
 </body>
 </html>
-
 
 
