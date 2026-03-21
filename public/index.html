@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat You Like - 3D UI</title>
+  <title>Chat You Like - Ultra Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 🔥 Particle Library -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
 
   <style>
     body {
@@ -10,36 +13,25 @@
       font-family: Arial;
       height: 100vh;
       overflow: hidden;
-      background: black;
       color: white;
     }
 
-    /* 🌌 Animated Background */
-    body::before {
-      content: "";
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(white 1px, transparent 1px);
-      background-size: 40px 40px;
-      animation: moveBg 20s linear infinite;
-      opacity: 0.1;
-    }
-
-    @keyframes moveBg {
-      from { transform: translate(0,0); }
-      to { transform: translate(-200px,-200px); }
+    /* 🌌 3D Background */
+    #particles {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background: black;
     }
 
     header {
       text-align: center;
       padding: 12px;
       font-size: 18px;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.4);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid #333;
-      position: relative;
-      z-index: 1;
     }
 
     #status {
@@ -47,8 +39,6 @@
       font-size: 13px;
       padding: 5px;
       color: #aaa;
-      position: relative;
-      z-index: 1;
     }
 
     #chat {
@@ -57,11 +47,9 @@
       padding: 10px;
       display: flex;
       flex-direction: column;
-      position: relative;
-      z-index: 1;
     }
 
-    /* 💬 Glass Chat Bubble */
+    /* 💬 Chat bubbles */
     .message {
       max-width: 70%;
       padding: 12px 16px;
@@ -69,43 +57,40 @@
       border-radius: 15px;
       backdrop-filter: blur(10px);
       background: rgba(255,255,255,0.1);
-      box-shadow: 0 0 10px rgba(0,255,255,0.2);
       animation: floatIn 0.3s ease;
     }
 
     .you {
       align-self: flex-end;
-      background: rgba(0, 255, 200, 0.2);
-      box-shadow: 0 0 10px #00ffc3;
+      background: rgba(0, 255, 200, 0.3);
     }
 
     .stranger {
       align-self: flex-start;
-      background: rgba(255, 100, 100, 0.2);
-      box-shadow: 0 0 10px #ff4d4d;
+      background: rgba(255, 100, 100, 0.3);
     }
 
     @keyframes floatIn {
       from {
-        transform: translateY(20px) scale(0.9);
+        transform: translateY(20px);
         opacity: 0;
       }
       to {
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
         opacity: 1;
       }
     }
 
+    /* 📥 Input */
     .input-box {
-      position: absolute;
+      position: fixed;
       bottom: 0;
       width: 100%;
       display: flex;
       padding: 10px;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(10px);
       gap: 5px;
-      z-index: 1;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(10px);
     }
 
     input {
@@ -136,7 +121,10 @@
 
 <body>
 
-<header>🌌 Chat You Like - Future UI</header>
+<!-- 🌌 3D Background -->
+<div id="particles"></div>
+
+<header>🚀 Chat You Like - Ultra</header>
 <div id="status">Connecting...</div>
 
 <div id="chat"></div>
@@ -147,6 +135,7 @@
   <button onclick="nextUser()">⏭</button>
 </div>
 
+<!-- 🔌 Socket -->
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
@@ -156,7 +145,7 @@ const chat = document.getElementById("chat");
 const status = document.getElementById("status");
 
 socket.on("waiting", () => {
-  status.innerText = "⏳ Searching user...";
+  status.innerText = "⏳ Waiting for stranger...";
 });
 
 socket.on("connected", () => {
@@ -196,6 +185,37 @@ function addMessage(msg, type) {
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
+
+/* 🌌 PARTICLE ENGINE */
+tsParticles.load("particles", {
+  background: { color: "#000" },
+  particles: {
+    number: { value: 80 },
+    color: { value: "#00ffc3" },
+    links: {
+      enable: true,
+      color: "#00ffc3",
+      distance: 120
+    },
+    move: {
+      enable: true,
+      speed: 2
+    },
+    size: {
+      value: 3
+    }
+  },
+  interactivity: {
+    events: {
+      onHover: { enable: true, mode: "repulse" },
+      onClick: { enable: true, mode: "push" }
+    },
+    modes: {
+      repulse: { distance: 100 },
+      push: { quantity: 4 }
+    }
+  }
+});
 </script>
 
 </body>
