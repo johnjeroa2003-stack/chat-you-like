@@ -1,6 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat You Like - Ultra Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 🌌 Particle Background -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      height: 100vh;
+      overflow: hidden;
+      color: white;
+    }
+
+    #particles {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background: black;
+    }
+
+    header {
+      text-align: center;
+      padding: 12px;
+      font-size: 18px;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+    }
+
+    #status {
+      text-align: center;
+      font-size: 13px;
+      padding: 5px;
+      color: #aaa;
+    }
+
+    #chat {
+      height: calc(100vh - 120px);
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 12px;
+      margin: 6px 0;
+      border-radius: 15px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .you {
+      align-self: flex-end;
+      background: rgba(0,255,200,0.3);
+    }
+
+    .stranger {
+      align-self: flex-start;
+      background: rgba(255,100,100,0.3);
+    }
+
+    .input-box {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      padding: 10px;
+      gap: 5px;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 20px;
+      border: none;
+      outline: none;
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 50%;
+      background: #00ffc3;
+      cursor: pointer;
+    }
+
+    button:last-child {
+      background: #ff4d4d;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="particles"></div>
+
+<header>🚀 Chat You Like - Ultra</header>
+<div id="status">Connecting...</div>
+
+<div id="chat"></div>
+
+<div class="input-box">
+  <input id="msg" placeholder="Type message..." />
+  <button onclick="sendMsg()">➤</button>
+  <button onclick="nextUser()">⏭</button>
+  <button onclick="joinRoom()">🔒</button>
+  <button onclick="sendFriend()">🤝</button>
+</div>
+
+<!-- Socket -->
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
 const socket = io();
 
-// ✅ ADD HERE 👇
+// ✅ USERNAME
+const username = localStorage.getItem("username");
+
+// ✅ Redirect if not logged in
+if (!username) {
+  window.location.href = "/login.html";
+}
+
+// ✅ Register user
+socket.emit("register", username);
+
+let currentRoom = null;
+
+const chat = document.getElementById("chat");
+const status = document.getElementById("status");
+
+// --------------------
+// 💬 CHAT EVENTS
+// --------------------
+socket.on("waiting", () => {
+  status.innerText = "⏳ Waiting for stranger...";
+});
+
+socket.on("connected", () => {
+  status.innerText = "🔥 Connected";
+});
+
+socket.on("receive-message", (msg) => {
+  addMessage(msg, "stranger");
+});
+
+socket.on("disconnected", () => {
+  status.innerText = "❌ Stranger left...";
+});
+
+// --------------------
+// 🤝 FRIEND SYSTEM (ADDED)
+// --------------------
 socket.on("friend-request", (fromUser) => {
   const accept = confirm(fromUser + " sent you a friend request");
 
@@ -12,3 +172,86 @@ socket.on("friend-request", (fromUser) => {
 socket.on("friend-accepted", (user) => {
   alert(user + " is now your friend 🎉");
 });
+
+// --------------------
+// FUNCTIONS
+// --------------------
+function sendMsg() {
+  const input = document.getElementById("msg");
+  const msg = input.value;
+
+  if (!msg.trim()) return;
+
+  const fullMsg = username + ": " + msg;
+
+  addMessage(fullMsg, "you");
+
+  if (currentRoom) {
+    socket.emit("private-message", {
+      roomId: currentRoom,
+      msg: fullMsg
+    });
+  } else {
+    socket.emit("send-message", fullMsg);
+  }
+
+  input.value = "";
+}
+
+function nextUser() {
+  chat.innerHTML = "";
+  socket.emit("next");
+}
+
+function addMessage(msg, type) {
+  const div = document.createElement("div");
+  div.classList.add("message", type);
+  div.innerText = msg;
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function joinRoom() {
+  const roomId = prompt("Enter Room ID:");
+  if (!roomId) return;
+
+  currentRoom = roomId;
+  chat.innerHTML = "";
+  socket.emit("join-room", roomId);
+}
+
+function sendFriend() {
+  const name = prompt("Enter username:");
+  if (!name) return;
+
+  socket.emit("send-friend-request", name);
+}
+
+// --------------------
+// 🌌 PARTICLE BACKGROUND
+// --------------------
+tsParticles.load("particles", {
+  background: { color: "#000" },
+  particles: {
+    number: { value: 80 },
+    color: { value: "#00ffc3" },
+    links: { enable: true, color: "#00ffc3", distance: 120 },
+    move: { enable: true, speed: 2 },
+    size: { value: 3 }
+  },
+  interactivity: {
+    events: {
+      onHover: { enable: true, mode: "repulse" },
+      onClick: { enable: true, mode: "push" }
+    },
+    modes: {
+      repulse: { distance: 100 },
+      push: { quantity: 4 }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
