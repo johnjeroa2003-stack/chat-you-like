@@ -6,9 +6,51 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Serve frontend
+// Middleware
+app.use(express.json());
 app.use(express.static("public"));
 
+// ----------------------
+// TEMP USER STORAGE
+// ----------------------
+let users = [];
+
+// ----------------------
+// REGISTER API
+// ----------------------
+app.post("/register", (req, res) => {
+  const { username, password, age, gender } = req.body;
+
+  const exists = users.find((u) => u.username === username);
+  if (exists) {
+    return res.json({ success: false, message: "User already exists" });
+  }
+
+  users.push({ username, password, age, gender });
+
+  res.json({ success: true, message: "Registered successfully" });
+});
+
+// ----------------------
+// LOGIN API
+// ----------------------
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+
+  const user = users.find(
+    (u) => u.username === username && u.password === password,
+  );
+
+  if (!user) {
+    return res.json({ success: false, message: "Invalid credentials" });
+  }
+
+  res.json({ success: true, user });
+});
+
+// ----------------------
+// CHAT LOGIC (UNCHANGED)
+// ----------------------
 let waitingUser = null;
 
 io.on("connection", (socket) => {
@@ -73,6 +115,7 @@ io.on("connection", (socket) => {
   });
 });
 
+// ----------------------
 server.listen(3000, () => {
   console.log("Server running on port 3000");
 });
