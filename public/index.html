@@ -133,6 +133,7 @@
   <input id="msg" placeholder="Type message..." />
   <button onclick="sendMsg()">➤</button>
   <button onclick="nextUser()">⏭</button>
+  <button onclick="joinRoom()">🔒</button>
 </div>
 
 <!-- 🔌 Socket -->
@@ -167,7 +168,15 @@ function sendMsg() {
   if (msg.trim() === "") return;
 
   addMessage(username + ": " + msg, "you");
-  socket.emit("send-message", username + ": " + msg);
+
+  if (currentRoom) {
+    socket.emit("private-message", {
+      roomId: currentRoom,
+      msg: username + ": " + msg
+    });
+  } else {
+    socket.emit("send-message", username + ": " + msg);
+  }
 
   input.value = "";
 }
@@ -186,6 +195,16 @@ function addMessage(msg, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
+function joinRoom() {
+  const roomId = prompt("Enter Room ID:");
+
+  if (!roomId) return;
+
+  currentRoom = roomId;
+
+  chat.innerHTML = "";
+  socket.emit("join-room", roomId);
+}
 /* 🌌 PARTICLE ENGINE */
 tsParticles.load("particles", {
   background: { color: "#000" },
@@ -221,6 +240,7 @@ const username = localStorage.getItem("username");
 if (!username) {
   window.location.href = "/login.html";
 }
+let currentRoom = null;
 </script>
 
 </body>

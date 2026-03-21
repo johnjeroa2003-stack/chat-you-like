@@ -5,7 +5,7 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-
+const roomId = Math.random().toString(36).substring(2, 8);
 // Middleware
 app.use(express.json());
 app.use(express.static("public"));
@@ -115,7 +115,34 @@ io.on("connection", (socket) => {
   });
 });
 
+socket.on("room-joined", (roomId) => {
+  status.innerText = "🔒 Private Room: " + roomId;
+});
+
+socket.on("receive-private-message", (msg) => {
+  addMessage(msg, "stranger");
+});
 // ----------------------
 server.listen(3000, () => {
   console.log("Server running on port 3000");
+});
+
+
+// ----------------------
+// PRIVATE ROOM JOIN
+// ----------------------
+socket.on("join-room", (roomId) => {
+  socket.join(roomId);
+  socket.roomId = roomId;
+
+  socket.emit("room-joined", roomId);
+});
+
+// ----------------------
+// PRIVATE ROOM MESSAGE
+// ----------------------
+socket.on("private-message", (data) => {
+  const { roomId, msg } = data;
+
+  socket.to(roomId).emit("receive-private-message", msg);
 });
