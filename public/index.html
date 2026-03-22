@@ -190,16 +190,32 @@ function sendMsg() {
   const input = document.getElementById("msg");
   const msg = input.value;
 
-  if (!msg.trim() || !currentChatUser) return;
+  console.log("Clicked send"); // ✅ debug
+
+  if (!msg.trim()) return;
+
+if (!currentChatUser) {
+  alert("⚠️ Please select a friend first");
+  return;
+}
+
+  console.log("Current chat user:", currentChatUser); // ✅ debug
 
   const fullMsg = username + ": " + msg;
 
   addMessage(fullMsg, "you");
 
-  socket.emit("private-message", {
-    to: currentChatUser,
-    msg: fullMsg
-  });
+  if (currentChatUser) {
+    console.log("Sending private message to:", currentChatUser);
+
+    socket.emit("private-message", {
+      to: currentChatUser,
+      msg: fullMsg
+    });
+  } else {
+    console.log("No user selected ❌");
+    alert("Select a friend first!");
+  }
 
   input.value = "";
 }
