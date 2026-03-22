@@ -17,13 +17,14 @@ function sendOnlineUsers() {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // REGISTER
+  // REGISTER USER
   socket.on("register", (username) => {
     if (!username) return;
 
     socket.username = username;
     users[username] = socket;
 
+    console.log(username + " registered");
     sendOnlineUsers();
   });
 
@@ -40,7 +41,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // SEEN ✔✔
+  // MESSAGE SEEN ✔✔
   socket.on("message-seen", ({ to, id }) => {
     const target = users[to];
 
@@ -52,16 +53,12 @@ io.on("connection", (socket) => {
   // TYPING
   socket.on("typing", (to) => {
     const target = users[to];
-    if (target) {
-      target.emit("typing", socket.username);
-    }
+    if (target) target.emit("typing", socket.username);
   });
 
   socket.on("stop-typing", (to) => {
     const target = users[to];
-    if (target) {
-      target.emit("stop-typing");
-    }
+    if (target) target.emit("stop-typing");
   });
 
   // DISCONNECT
@@ -70,6 +67,8 @@ io.on("connection", (socket) => {
       delete users[socket.username];
       sendOnlineUsers();
     }
+
+    console.log("User disconnected:", socket.id);
   });
 });
 

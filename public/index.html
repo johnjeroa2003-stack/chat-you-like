@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat You Like - WhatsApp Pro</title>
+  <title>Chat You Like</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -36,15 +36,6 @@
       padding: 12px;
       cursor: pointer;
       border-bottom: 1px solid #222;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .user img {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
     }
 
     .user:hover {
@@ -163,7 +154,6 @@ socket.emit("register", username);
 
 let currentChatUser = null;
 let messageMap = {};
-let chats = {}; // 💾 chat history
 
 const chat = document.getElementById("chat");
 const header = document.getElementById("chat-header");
@@ -171,13 +161,12 @@ const typingDiv = document.getElementById("typing");
 
 // ONLINE USERS
 socket.on("online-users", (users) => {
-  renderUsers(users.filter(u => u !== username));
+  const filtered = users.filter(u => u !== username);
+  renderUsers(filtered);
 });
 
 // RECEIVE MESSAGE
 socket.on("receive-private-message", (data) => {
-  saveMessage(data.from, data.msg, "other");
-
   if (currentChatUser === data.from) {
     addMessage(data.msg, "other");
   }
@@ -216,8 +205,6 @@ function sendMsg() {
 
   const id = Date.now();
 
-  saveMessage(currentChatUser, msg, "you");
-
   const div = document.createElement("div");
   div.classList.add("msg", "you");
   div.innerText = msg;
@@ -241,23 +228,6 @@ function sendMsg() {
   socket.emit("stop-typing", currentChatUser);
 }
 
-// SAVE CHAT
-function saveMessage(user, msg, type) {
-  if (!chats[user]) chats[user] = [];
-  chats[user].push({ msg, type });
-}
-
-// LOAD CHAT
-function loadChat(user) {
-  chat.innerHTML = "";
-
-  if (!chats[user]) return;
-
-  chats[user].forEach(m => {
-    addMessage(m.msg, m.type);
-  });
-}
-
 // ADD MESSAGE
 function addMessage(msg, type) {
   const div = document.createElement("div");
@@ -265,6 +235,7 @@ function addMessage(msg, type) {
   div.innerText = msg;
 
   chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 
 // RENDER USERS
@@ -272,23 +243,20 @@ function renderUsers(users) {
   const box = document.getElementById("users");
   box.innerHTML = "";
 
+  if (users.length === 0) {
+    box.innerHTML = "<p style='padding:10px'>No users online</p>";
+    return;
+  }
+
   users.forEach(user => {
     const div = document.createElement("div");
     div.classList.add("user");
-
-    const img = document.createElement("img");
-    img.src = "https://ui-avatars.com/api/?name=" + user;
-
-    const name = document.createElement("span");
-    name.innerText = user;
-
-    div.appendChild(img);
-    div.appendChild(name);
+    div.innerText = "🟢 " + user;
 
     div.onclick = () => {
       currentChatUser = user;
+      chat.innerHTML = "";
       header.innerText = "Chat with " + user;
-      loadChat(user);
     };
 
     box.appendChild(div);
@@ -296,16 +264,17 @@ function renderUsers(users) {
 }
 
 // ENTER KEY
-document.getElementById("msg").addEventListener("input", () => {
-  if (currentChatUser) {
-    socket.emit("typing", currentChatUser);
-  }
-});
-
 document.getElementById("msg").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
     sendMsg();
+  }
+});
+
+// TYPING EVENT
+document.getElementById("msg").addEventListener("input", () => {
+  if (currentChatUser) {
+    socket.emit("typing", currentChatUser);
   }
 });
 </script>
