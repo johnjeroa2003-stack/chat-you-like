@@ -4,7 +4,6 @@
   <title>Chat You Like - Ultra Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- 🌌 Particle Background -->
   <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
 
   <style>
@@ -29,7 +28,6 @@
       padding: 12px;
       font-size: 18px;
       background: rgba(0,0,0,0.4);
-      backdrop-filter: blur(10px);
     }
 
     #status {
@@ -40,6 +38,7 @@
     }
 
     #chat {
+      margin-left: 130px;
       height: calc(100vh - 120px);
       overflow-y: auto;
       padding: 10px;
@@ -65,6 +64,17 @@
       background: rgba(255,100,100,0.3);
     }
 
+    #friends {
+      position: fixed;
+      left: 0;
+      top: 80px;
+      width: 120px;
+      height: 70%;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+    }
+
     .input-box {
       position: fixed;
       bottom: 0;
@@ -73,7 +83,6 @@
       padding: 10px;
       gap: 5px;
       background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(10px);
     }
 
     input {
@@ -81,21 +90,15 @@
       padding: 12px;
       border-radius: 20px;
       border: none;
-      outline: none;
       background: rgba(255,255,255,0.1);
       color: white;
     }
 
     button {
       padding: 10px;
-      border: none;
       border-radius: 50%;
+      border: none;
       background: #00ffc3;
-      cursor: pointer;
-    }
-
-    button:last-child {
-      background: #ff4d4d;
     }
   </style>
 </head>
@@ -103,6 +106,8 @@
 <body>
 
 <div id="particles"></div>
+
+<div id="friends"><b>Friends</b></div>
 
 <header>🚀 Chat You Like - Ultra</header>
 <div id="status">Connecting...</div>
@@ -117,50 +122,39 @@
   <button onclick="sendFriend()">🤝</button>
 </div>
 
-<!-- Socket -->
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
 const socket = io();
 
-// ✅ USERNAME
 const username = localStorage.getItem("username");
 
-// ✅ Redirect if not logged in
 if (!username) {
   window.location.href = "/login.html";
 }
 
-// ✅ Register user
 socket.emit("register", username);
 
+let friends = [];
+let currentChatUser = null;
 let currentRoom = null;
 
 const chat = document.getElementById("chat");
 const status = document.getElementById("status");
 
-// --------------------
-// 💬 CHAT EVENTS
-// --------------------
-socket.on("waiting", () => {
-  status.innerText = "⏳ Waiting for stranger...";
-});
-
-socket.on("connected", () => {
-  status.innerText = "🔥 Connected";
-});
+// ---------------- CHAT ----------------
+socket.on("waiting", () => status.innerText = "⏳ Waiting...");
+socket.on("connected", () => status.innerText = "🔥 Connected");
 
 socket.on("receive-message", (msg) => {
-  addMessage(msg, "stranger");
+  if (!currentChatUser) addMessage(msg, "stranger");
 });
 
 socket.on("disconnected", () => {
-  status.innerText = "❌ Stranger left...";
+  status.innerText = "❌ Stranger left";
 });
 
-// --------------------
-// 🤝 FRIEND SYSTEM (ADDED)
-// --------------------
+// ---------------- FRIEND SYSTEM ----------------
 socket.on("friend-request", (fromUser) => {
   const accept = confirm(fromUser + " sent you a friend request");
 
@@ -171,11 +165,18 @@ socket.on("friend-request", (fromUser) => {
 
 socket.on("friend-accepted", (user) => {
   alert(user + " is now your friend 🎉");
+  friends.push(user);
+  renderFriends();
 });
 
-// --------------------
-// FUNCTIONS
-// --------------------
+// ---------------- PRIVATE CHAT ----------------
+socket.on("receive-private-message", (data) => {
+  if (currentChatUser === data.from) {
+    addMessage(data.msg, "stranger");
+  }
+});
+
+// ---------------- FUNCTIONS ----------------
 function sendMsg() {
   const input = document.getElementById("msg");
   const msg = input.value;
@@ -186,12 +187,19 @@ function sendMsg() {
 
   addMessage(fullMsg, "you");
 
-  if (currentRoom) {
+  if (currentChatUser) {
     socket.emit("private-message", {
-      roomId: currentRoom,
+      to: currentChatUser,
       msg: fullMsg
     });
-  } else {
+  } 
+  else if (currentRoom) {
+    socket.emit("private-message", {
+      to: currentRoom,
+      msg: fullMsg
+    });
+  } 
+  else {
     socket.emit("send-message", fullMsg);
   }
 
@@ -199,6 +207,7 @@ function sendMsg() {
 }
 
 function nextUser() {
+  currentChatUser = null;
   chat.innerHTML = "";
   socket.emit("next");
 }
@@ -217,8 +226,10 @@ function joinRoom() {
   if (!roomId) return;
 
   currentRoom = roomId;
+  currentChatUser = null;
+
   chat.innerHTML = "";
-  socket.emit("join-room", roomId);
+  status.innerText = "🔒 Room: " + roomId;
 }
 
 function sendFriend() {
@@ -228,27 +239,33 @@ function sendFriend() {
   socket.emit("send-friend-request", name);
 }
 
-// --------------------
-// 🌌 PARTICLE BACKGROUND
-// --------------------
+function renderFriends() {
+  const box = document.getElementById("friends");
+  box.innerHTML = "<b>Friends</b>";
+
+  friends.forEach((f) => {
+    const div = document.createElement("div");
+    div.innerText = f;
+    div.style.cursor = "pointer";
+
+    div.onclick = () => {
+      currentChatUser = f;
+      currentRoom = null;
+      chat.innerHTML = "";
+      status.innerText = "💬 Chat with " + f;
+    };
+
+    box.appendChild(div);
+  });
+}
+
+// ---------------- PARTICLES ----------------
 tsParticles.load("particles", {
-  background: { color: "#000" },
   particles: {
     number: { value: 80 },
     color: { value: "#00ffc3" },
     links: { enable: true, color: "#00ffc3", distance: 120 },
-    move: { enable: true, speed: 2 },
-    size: { value: 3 }
-  },
-  interactivity: {
-    events: {
-      onHover: { enable: true, mode: "repulse" },
-      onClick: { enable: true, mode: "push" }
-    },
-    modes: {
-      repulse: { distance: 100 },
-      push: { quantity: 4 }
-    }
+    move: { enable: true, speed: 2 }
   }
 });
 </script>

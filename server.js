@@ -26,8 +26,11 @@ io.on("connection", (socket) => {
 
   // ✅ Register user
   socket.on("register", (username) => {
+    if (!username) return; // safety check
+
     socket.username = username;
     users[username] = socket;
+
     console.log(username + " registered");
   });
 
@@ -42,7 +45,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Accept friend
   socket.on("accept-friend", (fromUser) => {
     const target = users[fromUser];
 
@@ -52,7 +54,7 @@ io.on("connection", (socket) => {
   });
 
   // ----------------------
-  // 🔀 RANDOM CHAT MATCHING
+  // 🔀 RANDOM CHAT
   // ----------------------
   if (waitingUser) {
     socket.partner = waitingUser;
@@ -68,11 +70,25 @@ io.on("connection", (socket) => {
   }
 
   // ----------------------
-  // 💬 MESSAGE
+  // 💬 RANDOM MESSAGE
   // ----------------------
   socket.on("send-message", (msg) => {
     if (socket.partner) {
       socket.partner.emit("receive-message", msg);
+    }
+  });
+
+  // ----------------------
+  // 📩 PRIVATE MESSAGE (FRIENDS)
+  // ----------------------
+  socket.on("private-message", ({ to, msg }) => {
+    const target = users[to];
+
+    if (target) {
+      target.emit("receive-private-message", {
+        from: socket.username,
+        msg: msg,
+      });
     }
   });
 
