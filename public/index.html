@@ -29,18 +29,18 @@
       border-bottom: 1px solid #333;
     }
 
-    #friends {
+    #users {
       flex: 1;
       overflow-y: auto;
     }
 
-    .friend {
+    .user {
       padding: 12px;
       border-bottom: 1px solid #222;
       cursor: pointer;
     }
 
-    .friend:hover {
+    .user:hover {
       background: #1f2937;
     }
 
@@ -117,14 +117,13 @@
 
 <!-- LEFT SIDE -->
 <div id="sidebar">
-  <h2>Chats</h2>
-  <div id="friends"></div>
-  <button onclick="sendFriend()">➕ Add Friend</button>
+  <h2>Online Users</h2>
+  <div id="users"></div>
 </div>
 
 <!-- RIGHT SIDE -->
 <div id="chat-area">
-  <div id="chat-header">Select a friend</div>
+  <div id="chat-header">Select a user</div>
   <div id="chat"></div>
 
   <div id="input-box">
@@ -137,89 +136,62 @@
 
 <script>
 const socket = io();
-const username = localStorage.getItem("username");
+
+// ✅ USERNAME
+let username = localStorage.getItem("username");
 
 if (!username) {
-  window.location.href = "/login.html";
+  username = prompt("Enter your username:");
+  localStorage.setItem("username", username);
 }
 
+// REGISTER USER
 socket.emit("register", username);
 
-let friends = [];
 let currentChatUser = null;
+let onlineUsers = [];
 
 const chat = document.getElementById("chat");
 const header = document.getElementById("chat-header");
 
-// ---------------- FRIEND SYSTEM ----------------
-socket.on("friend-request", (fromUser) => {
-  const accept = confirm(fromUser + " sent you a friend request");
-
-  if (accept) {
-    socket.emit("accept-friend", fromUser);
-  }
+// 🔥 RECEIVE ONLINE USERS
+socket.on("online-users", (users) => {
+  onlineUsers = users.filter(u => u !== username);
+  renderUsers();
 });
 
-socket.on("friend-accepted", (user) => {
-  if (!friends.includes(user)) {
-    friends.push(user);
-    renderFriends();
-  }
-});
-
-socket.on("accept-friend", (fromUser) => {
-  const target = users[fromUser];
-
-  if (target) {
-    target.emit("friend-accepted", socket.username);
-
-    // 🔥 ALSO SEND BACK (IMPORTANT)
-    socket.emit("friend-accepted", fromUser);
-  }
-});
-
-// ---------------- PRIVATE CHAT ----------------
+// 🔥 RECEIVE MESSAGE
 socket.on("receive-private-message", (data) => {
-  if (currentChatUser === data.from) {
+  if (data.from === currentChatUser) {
     addMessage(data.msg, "other");
   }
 });
 
-// ---------------- FUNCTIONS ----------------
+// SEND MESSAGE
 function sendMsg() {
   const input = document.getElementById("msg");
   const msg = input.value;
 
-  console.log("Clicked send"); // ✅ debug
-
   if (!msg.trim()) return;
 
-if (!currentChatUser) {
-  alert("⚠️ Please select a friend first");
-  return;
-}
-
-  console.log("Current chat user:", currentChatUser); // ✅ debug
+  if (!currentChatUser) {
+    alert("⚠️ Select a user first");
+    return;
+  }
 
   const fullMsg = username + ": " + msg;
 
   addMessage(fullMsg, "you");
 
-  if (currentChatUser) {
-    console.log("Sending private message to:", currentChatUser);
-
-    socket.emit("private-message", {
-      to: currentChatUser,
-      msg: fullMsg
-    });
-  } else {
-    console.log("No user selected ❌");
-    alert("Select a friend first!");
-  }
+  socket.emit("private-message", {
+    to: currentChatUser,
+    msg: fullMsg
+  });
 
   input.value = "";
 }
 
+// ADD MESSAGE
 function addMessage(msg, type) {
   const div = document.createElement("div");
   div.classList.add("msg", type);
@@ -229,35 +201,30 @@ function addMessage(msg, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function renderFriends() {
-  const box = document.getElementById("friends");
+// RENDER ONLINE USERS
+function renderUsers() {
+  const box = document.getElementById("users");
   box.innerHTML = "";
 
-  friends.forEach((f) => {
+  onlineUsers.forEach((user) => {
     const div = document.createElement("div");
-    div.classList.add("friend");
-    div.innerText = f;
+    div.classList.add("user");
+    div.innerText = "🟢 " + user;
 
     div.onclick = () => {
-      currentChatUser = f;
+      currentChatUser = user;
       chat.innerHTML = "";
-      header.innerText = "Chat with " + f;
+      header.innerText = "Chat with " + user;
     };
 
     box.appendChild(div);
   });
 }
 
-function sendFriend() {
-  const name = prompt("Enter username:");
-  if (!name) return;
-
-  socket.emit("send-friend-request", name);
-}
-
-document.getElementById("msg").addEventListener("keydown", function(event) {
-  if (event.key === "Enter") {
-    event.preventDefault(); // stops weird behavior
+// ENTER KEY SEND
+document.getElementById("msg").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
     sendMsg();
   }
 });

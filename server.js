@@ -2,88 +2,37 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
-let users = {}; // username -> socket
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.json());
-
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/login.html");
-});
-
 app.use(express.static("public"));
 
-// ----------------------
-// CHAT LOGIC
-// ----------------------
-let waitingUser = null;
+let users = {}; // username -> socket
+
+// 🔥 SEND ONLINE USERS
+function sendOnlineUsers() {
+  io.emit("online-users", Object.keys(users));
+}
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // ✅ Register user
+  // ✅ REGISTER USER
   socket.on("register", (username) => {
-    if (!username) return; // safety check
+    if (!username) return;
 
     socket.username = username;
     users[username] = socket;
 
     console.log(username + " registered");
+
+    sendOnlineUsers(); // 🔥 update sidebar
   });
 
-  // ----------------------
-  // 🤝 FRIEND REQUEST
-  // ----------------------
-  socket.on("send-friend-request", (toUser) => {
-    const target = users[toUser];
-
-    if (target) {
-      target.emit("friend-request", socket.username);
-    }
-  });
-
-  socket.on("accept-friend", (fromUser) => {
-    const target = users[fromUser];
-
-    if (target) {
-      target.emit("friend-accepted", socket.username);
-    }
-  });
-
-  // ----------------------
-  // 🔀 RANDOM CHAT
-  // ----------------------
-  if (waitingUser) {
-    socket.partner = waitingUser;
-    waitingUser.partner = socket;
-
-    socket.emit("connected");
-    waitingUser.emit("connected");
-
-    waitingUser = null;
-  } else {
-    waitingUser = socket;
-    socket.emit("waiting");
-  }
-
-  // ----------------------
-  // 💬 RANDOM MESSAGE
-  // ----------------------
-  socket.on("send-message", (msg) => {
-    if (socket.partner) {
-      socket.partner.emit("receive-message", msg);
-    }
-  });
-
-  // ----------------------
-  // 📩 PRIVATE MESSAGE (FRIENDS)
-  // ----------------------
+  // ✅ PRIVATE MESSAGE (MAIN FEATURE)
   socket.on("private-message", ({ to, msg }) => {
-    console.log("Sending to:", to); // 👈 ADD THIS
-    console.log("Available users:", Object.keys(users)); // 👈 ADD
+    console.log("Sending to:", to);
 
     const target = users[to];
 
@@ -97,57 +46,20 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ----------------------
-  // 🔄 NEXT USER
-  // ----------------------
-  socket.on("next", () => {
-    if (socket.partner) {
-      socket.partner.emit("disconnected");
-      socket.partner.partner = null;
-    }
+  // ❌ REMOVE RANDOM CHAT (not needed for WhatsApp UI)
+  // ❌ REMOVE FRIEND SYSTEM (optional, can add later cleanly)
 
-    socket.partner = null;
-
-    if (waitingUser === socket) {
-      waitingUser = null;
-    }
-
-    if (waitingUser) {
-      socket.partner = waitingUser;
-      waitingUser.partner = socket;
-
-      socket.emit("connected");
-      waitingUser.emit("connected");
-
-      waitingUser = null;
-    } else {
-      waitingUser = socket;
-      socket.emit("waiting");
-    }
-  });
-
-  // ----------------------
-  // ❌ DISCONNECT
-  // ----------------------
+  // ✅ DISCONNECT
   socket.on("disconnect", () => {
     if (socket.username) {
       delete users[socket.username];
-    }
-
-    if (socket.partner) {
-      socket.partner.emit("disconnected");
-      socket.partner.partner = null;
-    }
-
-    if (waitingUser === socket) {
-      waitingUser = null;
+      sendOnlineUsers(); // 🔥 update list
     }
 
     console.log("User disconnected:", socket.id);
   });
 });
 
-// ----------------------
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
