@@ -10,7 +10,6 @@ app.use(express.static("public"));
 
 let users = {}; // username -> socket
 
-// 🔥 SEND ONLINE USERS
 function sendOnlineUsers() {
   io.emit("online-users", Object.keys(users));
 }
@@ -18,7 +17,7 @@ function sendOnlineUsers() {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // ✅ REGISTER
+  // REGISTER
   socket.on("register", (username) => {
     if (!username) return;
 
@@ -28,7 +27,7 @@ io.on("connection", (socket) => {
     sendOnlineUsers();
   });
 
-  // ✅ SEND MESSAGE WITH ID
+  // PRIVATE MESSAGE
   socket.on("private-message", ({ to, msg, id }) => {
     const target = users[to];
 
@@ -41,7 +40,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ✅ SEEN (✔✔)
+  // SEEN ✔✔
   socket.on("message-seen", ({ to, id }) => {
     const target = users[to];
 
@@ -50,7 +49,22 @@ io.on("connection", (socket) => {
     }
   });
 
-  // ❌ DISCONNECT
+  // TYPING
+  socket.on("typing", (to) => {
+    const target = users[to];
+    if (target) {
+      target.emit("typing", socket.username);
+    }
+  });
+
+  socket.on("stop-typing", (to) => {
+    const target = users[to];
+    if (target) {
+      target.emit("stop-typing");
+    }
+  });
+
+  // DISCONNECT
   socket.on("disconnect", () => {
     if (socket.username) {
       delete users[socket.username];

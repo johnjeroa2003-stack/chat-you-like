@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat You Like - WhatsApp</title>
+  <title>Chat You Like - WhatsApp Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -36,6 +36,15 @@
       padding: 12px;
       cursor: pointer;
       border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user img {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
     }
 
     .user:hover {
@@ -51,6 +60,11 @@
     #chat-header {
       padding: 10px;
       background: #111827;
+    }
+
+    #typing {
+      font-size: 12px;
+      color: #aaa;
     }
 
     #chat {
@@ -120,7 +134,11 @@
 </div>
 
 <div id="chat-area">
-  <div id="chat-header">Select user</div>
+  <div id="chat-header">
+    Select user
+    <div id="typing"></div>
+  </div>
+
   <div id="chat"></div>
 
   <div id="input-box">
@@ -144,11 +162,12 @@ if (!username) {
 socket.emit("register", username);
 
 let currentChatUser = null;
-let onlineUsers = {};
-let messageMap = {}; // id -> element
+let messageMap = {};
+let chats = {}; // 💾 chat history
 
 const chat = document.getElementById("chat");
 const header = document.getElementById("chat-header");
+const typingDiv = document.getElementById("typing");
 
 // ONLINE USERS
 socket.on("online-users", (users) => {
@@ -157,19 +176,34 @@ socket.on("online-users", (users) => {
 
 // RECEIVE MESSAGE
 socket.on("receive-private-message", (data) => {
-  addMessage(data.msg, "other");
+  saveMessage(data.from, data.msg, "other");
 
-  // send seen
+  if (currentChatUser === data.from) {
+    addMessage(data.msg, "other");
+  }
+
   socket.emit("message-seen", {
     to: data.from,
     id: data.id
   });
 });
 
-// SEEN TICKS
+// SEEN ✔✔
 socket.on("message-seen", ({ id }) => {
-  const tick = messageMap[id];
-  if (tick) tick.innerText = "✔✔";
+  if (messageMap[id]) {
+    messageMap[id].innerText = "✔✔";
+  }
+});
+
+// TYPING
+socket.on("typing", (user) => {
+  if (user === currentChatUser) {
+    typingDiv.innerText = user + " typing...";
+  }
+});
+
+socket.on("stop-typing", () => {
+  typingDiv.innerText = "";
 });
 
 // SEND MESSAGE
@@ -181,6 +215,8 @@ function sendMsg() {
   if (!currentChatUser) return alert("Select user");
 
   const id = Date.now();
+
+  saveMessage(currentChatUser, msg, "you");
 
   const div = document.createElement("div");
   div.classList.add("msg", "you");
@@ -197,11 +233,29 @@ function sendMsg() {
 
   socket.emit("private-message", {
     to: currentChatUser,
-    msg: msg,
+    msg,
     id
   });
 
   input.value = "";
+  socket.emit("stop-typing", currentChatUser);
+}
+
+// SAVE CHAT
+function saveMessage(user, msg, type) {
+  if (!chats[user]) chats[user] = [];
+  chats[user].push({ msg, type });
+}
+
+// LOAD CHAT
+function loadChat(user) {
+  chat.innerHTML = "";
+
+  if (!chats[user]) return;
+
+  chats[user].forEach(m => {
+    addMessage(m.msg, m.type);
+  });
 }
 
 // ADD MESSAGE
@@ -221,12 +275,20 @@ function renderUsers(users) {
   users.forEach(user => {
     const div = document.createElement("div");
     div.classList.add("user");
-    div.innerText = "🟢 " + user;
+
+    const img = document.createElement("img");
+    img.src = "https://ui-avatars.com/api/?name=" + user;
+
+    const name = document.createElement("span");
+    name.innerText = user;
+
+    div.appendChild(img);
+    div.appendChild(name);
 
     div.onclick = () => {
       currentChatUser = user;
-      chat.innerHTML = "";
       header.innerText = "Chat with " + user;
+      loadChat(user);
     };
 
     box.appendChild(div);
@@ -234,6 +296,12 @@ function renderUsers(users) {
 }
 
 // ENTER KEY
+document.getElementById("msg").addEventListener("input", () => {
+  if (currentChatUser) {
+    socket.emit("typing", currentChatUser);
+  }
+});
+
 document.getElementById("msg").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
