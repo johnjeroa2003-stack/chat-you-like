@@ -1,46 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Enter Chat</title>
+  <title>Login - Chat You Like</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
-      font-family: Arial;
-      background: black;
-      color: white;
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      background: #0f172a;
+      color: white;
+      font-family: Arial;
     }
 
     .box {
-      background: #111;
-      padding: 20px;
-      border-radius: 15px;
-      width: 90%;
-      max-width: 350px;
+      background: #111827;
+      padding: 30px;
+      border-radius: 10px;
+      width: 300px;
       text-align: center;
     }
 
     input, select {
       width: 100%;
       padding: 10px;
-      margin: 8px 0;
-      border-radius: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
       border: none;
     }
 
     button {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
+      background: #22c55e;
       border: none;
-      border-radius: 10px;
-      background: #00ffc3;
+      border-radius: 5px;
       cursor: pointer;
-      font-weight: bold;
     }
   </style>
 </head>
@@ -48,53 +46,42 @@
 <body>
 
 <div class="box">
-  <h2>Enter Chat 🚀</h2>
+  <h2>Enter Chat</h2>
 
-  <input id="username" placeholder="Username" />
-  <input id="dob" type="date" />
-  
+  <input id="name" placeholder="Username" />
+  <input type="date" id="dob" />
   <select id="gender">
     <option value="">Select Gender</option>
     <option>Male</option>
     <option>Female</option>
   </select>
 
-  <button onclick="enterChat()">Enter</button>
-
-  <p id="error" style="color:red;"></p>
+  <button onclick="enter()">Enter</button>
 </div>
 
 <script>
-function calculateAge(dob) {
-  const birthDate = new Date(dob);
-  const diff = Date.now() - birthDate.getTime();
-  const age = new Date(diff).getUTCFullYear() - 1970;
-  return age;
-}
-
-function enterChat() {
-  const username = document.getElementById("username").value;
+function enter() {
+  const name = document.getElementById("name").value;
   const dob = document.getElementById("dob").value;
   const gender = document.getElementById("gender").value;
-  const error = document.getElementById("error");
 
-  if (!username || !dob || !gender) {
-    error.innerText = "Fill all fields";
+  if (!name || !dob || !gender) {
+    alert("Fill all details");
     return;
   }
 
-  const age = calculateAge(dob);
+  // 👉 AGE CHECK
+  const age = new Date().getFullYear() - new Date(dob).getFullYear();
 
   if (age < 18) {
-    error.innerText = "❌ You must be 18+ to enter";
+    alert("❌ Only 18+ allowed");
     return;
   }
 
-  // Save in browser
-  localStorage.setItem("username", username);
-  localStorage.setItem("gender", gender);
+  // SAVE USER
+  localStorage.setItem("username", name);
 
-  // Go to chat
+  // GO TO CHAT
   window.location.href = "/index.html";
 }
 </script>

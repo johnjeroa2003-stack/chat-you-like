@@ -11,12 +11,13 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static("public"));
 
+// 👉 FIRST PAGE = LOGIN
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/login.html");
 });
 
 // ----------------------
-// 🚀 CONNECTION
+// SOCKET CONNECTION
 // ----------------------
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -30,7 +31,7 @@ io.on("connection", (socket) => {
 
     console.log(username + " registered");
 
-    // 🔥 SEND ONLINE USERS TO EVERYONE
+    // 🔥 SEND ONLINE USERS
     io.emit("online-users", Object.keys(users));
   });
 
@@ -54,12 +55,8 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     if (socket.username) {
       delete users[socket.username];
-
-      // 🔥 UPDATE ONLINE USERS
       io.emit("online-users", Object.keys(users));
     }
-
-    console.log("User disconnected:", socket.id);
   });
 });
 
