@@ -82,6 +82,9 @@ io.on("connection", (socket) => {
   // 📩 PRIVATE MESSAGE (FRIENDS)
   // ----------------------
   socket.on("private-message", ({ to, msg }) => {
+    console.log("Sending to:", to); // 👈 ADD THIS
+    console.log("Available users:", Object.keys(users)); // 👈 ADD
+
     const target = users[to];
 
     if (target) {
@@ -89,6 +92,8 @@ io.on("connection", (socket) => {
         from: socket.username,
         msg: msg,
       });
+    } else {
+      console.log("User not found:", to);
     }
   });
 

@@ -161,9 +161,21 @@ socket.on("friend-request", (fromUser) => {
 });
 
 socket.on("friend-accepted", (user) => {
-  alert(user + " is now your friend 🎉");
-  friends.push(user);
-  renderFriends();
+  if (!friends.includes(user)) {
+    friends.push(user);
+    renderFriends();
+  }
+});
+
+socket.on("accept-friend", (fromUser) => {
+  const target = users[fromUser];
+
+  if (target) {
+    target.emit("friend-accepted", socket.username);
+
+    // 🔥 ALSO SEND BACK (IMPORTANT)
+    socket.emit("friend-accepted", fromUser);
+  }
 });
 
 // ---------------- PRIVATE CHAT ----------------
