@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat You Like</title>
+  <title>Chat You Like - Live Users</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -17,7 +17,6 @@
     #sidebar {
       width: 30%;
       background: #111827;
-      border-right: 1px solid #333;
       display: flex;
       flex-direction: column;
     }
@@ -34,8 +33,8 @@
 
     .user {
       padding: 12px;
-      cursor: pointer;
       border-bottom: 1px solid #222;
+      cursor: pointer;
     }
 
     .user:hover {
@@ -53,11 +52,6 @@
       background: #111827;
     }
 
-    #typing {
-      font-size: 12px;
-      color: #aaa;
-    }
-
     #chat {
       flex: 1;
       overflow-y: auto;
@@ -71,7 +65,6 @@
       padding: 10px;
       margin: 5px 0;
       border-radius: 10px;
-      position: relative;
     }
 
     .you {
@@ -85,13 +78,6 @@
       background: #374151;
     }
 
-    .tick {
-      font-size: 12px;
-      position: absolute;
-      bottom: 3px;
-      right: 8px;
-    }
-
     #input-box {
       display: flex;
       padding: 10px;
@@ -103,33 +89,29 @@
       padding: 10px;
       border-radius: 20px;
       border: none;
-      outline: none;
     }
 
     #input-box button {
       margin-left: 5px;
       padding: 10px;
       border-radius: 50%;
-      border: none;
       background: #22c55e;
-      cursor: pointer;
+      border: none;
     }
   </style>
 </head>
 
 <body>
 
+<!-- LEFT -->
 <div id="sidebar">
-  <h2>Online</h2>
+  <h2>Online Users</h2>
   <div id="users"></div>
 </div>
 
+<!-- RIGHT -->
 <div id="chat-area">
-  <div id="chat-header">
-    Select user
-    <div id="typing"></div>
-  </div>
-
+  <div id="chat-header">Select user</div>
   <div id="chat"></div>
 
   <div id="input-box">
@@ -142,141 +124,95 @@
 
 <script>
 const socket = io();
-
-let username = localStorage.getItem("username");
+const username = localStorage.getItem("username");
 
 if (!username) {
-  username = prompt("Enter username:");
-  localStorage.setItem("username", username);
+  const name = prompt("Enter your username");
+  localStorage.setItem("username", name);
+  location.reload();
 }
 
+// REGISTER
 socket.emit("register", username);
 
-let currentChatUser = null;
-let messageMap = {};
+let currentUser = null;
 
 const chat = document.getElementById("chat");
 const header = document.getElementById("chat-header");
-const typingDiv = document.getElementById("typing");
 
-// ONLINE USERS
-socket.on("online-users", (users) => {
-  const filtered = users.filter(u => u !== username);
-  renderUsers(filtered);
-});
+// ----------------------
+// 🟢 ONLINE USERS
+// ----------------------
+socket.on("online-users", (userList) => {
+  const box = document.getElementById("users");
+  box.innerHTML = "";
 
-// RECEIVE MESSAGE
-socket.on("receive-private-message", (data) => {
-  if (currentChatUser === data.from) {
-    addMessage(data.msg, "other");
-  }
+  userList.forEach((user) => {
+    if (user === username) return;
 
-  socket.emit("message-seen", {
-    to: data.from,
-    id: data.id
+    const div = document.createElement("div");
+    div.className = "user";
+    div.innerText = user;
+
+    div.onclick = () => {
+      currentUser = user;
+      header.innerText = "Chat with " + user;
+      chat.innerHTML = "";
+    };
+
+    box.appendChild(div);
   });
 });
 
-// SEEN ✔✔
-socket.on("message-seen", ({ id }) => {
-  if (messageMap[id]) {
-    messageMap[id].innerText = "✔✔";
+// ----------------------
+// 💬 RECEIVE MESSAGE
+// ----------------------
+socket.on("receive-private-message", (data) => {
+  if (data.from === currentUser) {
+    addMessage(data.msg, "other");
   }
 });
 
-// TYPING
-socket.on("typing", (user) => {
-  if (user === currentChatUser) {
-    typingDiv.innerText = user + " typing...";
-  }
-});
-
-socket.on("stop-typing", () => {
-  typingDiv.innerText = "";
-});
-
-// SEND MESSAGE
+// ----------------------
+// 📤 SEND MESSAGE
+// ----------------------
 function sendMsg() {
   const input = document.getElementById("msg");
   const msg = input.value;
 
   if (!msg.trim()) return;
-  if (!currentChatUser) return alert("Select user");
 
-  const id = Date.now();
+  if (!currentUser) {
+    alert("Select a user first");
+    return;
+  }
 
-  const div = document.createElement("div");
-  div.classList.add("msg", "you");
-  div.innerText = msg;
+  const fullMsg = username + ": " + msg;
 
-  const tick = document.createElement("span");
-  tick.classList.add("tick");
-  tick.innerText = "✔";
-
-  div.appendChild(tick);
-  chat.appendChild(div);
-
-  messageMap[id] = tick;
+  addMessage(fullMsg, "you");
 
   socket.emit("private-message", {
-    to: currentChatUser,
-    msg,
-    id
+    to: currentUser,
+    msg: fullMsg
   });
 
   input.value = "";
-  socket.emit("stop-typing", currentChatUser);
 }
 
-// ADD MESSAGE
+// ENTER KEY
+document.getElementById("msg").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendMsg();
+});
+
+// ----------------------
 function addMessage(msg, type) {
   const div = document.createElement("div");
-  div.classList.add("msg", type);
+  div.className = "msg " + type;
   div.innerText = msg;
 
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
-
-// RENDER USERS
-function renderUsers(users) {
-  const box = document.getElementById("users");
-  box.innerHTML = "";
-
-  if (users.length === 0) {
-    box.innerHTML = "<p style='padding:10px'>No users online</p>";
-    return;
-  }
-
-  users.forEach(user => {
-    const div = document.createElement("div");
-    div.classList.add("user");
-    div.innerText = "🟢 " + user;
-
-    div.onclick = () => {
-      currentChatUser = user;
-      chat.innerHTML = "";
-      header.innerText = "Chat with " + user;
-    };
-
-    box.appendChild(div);
-  });
-}
-
-// ENTER KEY
-document.getElementById("msg").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    sendMsg();
-  }
-});
-
-// TYPING EVENT
-document.getElementById("msg").addEventListener("input", () => {
-  if (currentChatUser) {
-    socket.emit("typing", currentChatUser);
-  }
-});
 </script>
 
 </body>
