@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat You Like - WhatsApp UI</title>
+  <title>Chat You Like - WhatsApp</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -14,7 +14,6 @@
       color: white;
     }
 
-    /* LEFT SIDEBAR */
     #sidebar {
       width: 30%;
       background: #111827;
@@ -26,7 +25,6 @@
     #sidebar h2 {
       text-align: center;
       padding: 10px;
-      border-bottom: 1px solid #333;
     }
 
     #users {
@@ -36,15 +34,14 @@
 
     .user {
       padding: 12px;
-      border-bottom: 1px solid #222;
       cursor: pointer;
+      border-bottom: 1px solid #222;
     }
 
     .user:hover {
       background: #1f2937;
     }
 
-    /* RIGHT CHAT */
     #chat-area {
       width: 70%;
       display: flex;
@@ -54,7 +51,6 @@
     #chat-header {
       padding: 10px;
       background: #111827;
-      border-bottom: 1px solid #333;
     }
 
     #chat {
@@ -70,6 +66,7 @@
       padding: 10px;
       margin: 5px 0;
       border-radius: 10px;
+      position: relative;
     }
 
     .you {
@@ -81,6 +78,13 @@
     .other {
       align-self: flex-start;
       background: #374151;
+    }
+
+    .tick {
+      font-size: 12px;
+      position: absolute;
+      bottom: 3px;
+      right: 8px;
     }
 
     #input-box {
@@ -100,30 +104,23 @@
     #input-box button {
       margin-left: 5px;
       padding: 10px;
-      border: none;
       border-radius: 50%;
+      border: none;
       background: #22c55e;
       cursor: pointer;
-    }
-
-    @media (max-width: 768px) {
-      #sidebar { width: 40%; }
-      #chat-area { width: 60%; }
     }
   </style>
 </head>
 
 <body>
 
-<!-- LEFT SIDE -->
 <div id="sidebar">
-  <h2>Online Users</h2>
+  <h2>Online</h2>
   <div id="users"></div>
 </div>
 
-<!-- RIGHT SIDE -->
 <div id="chat-area">
-  <div id="chat-header">Select a user</div>
+  <div id="chat-header">Select user</div>
   <div id="chat"></div>
 
   <div id="input-box">
@@ -137,34 +134,42 @@
 <script>
 const socket = io();
 
-// ✅ USERNAME
 let username = localStorage.getItem("username");
 
 if (!username) {
-  username = prompt("Enter your username:");
+  username = prompt("Enter username:");
   localStorage.setItem("username", username);
 }
 
-// REGISTER USER
 socket.emit("register", username);
 
 let currentChatUser = null;
-let onlineUsers = [];
+let onlineUsers = {};
+let messageMap = {}; // id -> element
 
 const chat = document.getElementById("chat");
 const header = document.getElementById("chat-header");
 
-// 🔥 RECEIVE ONLINE USERS
+// ONLINE USERS
 socket.on("online-users", (users) => {
-  onlineUsers = users.filter(u => u !== username);
-  renderUsers();
+  renderUsers(users.filter(u => u !== username));
 });
 
-// 🔥 RECEIVE MESSAGE
+// RECEIVE MESSAGE
 socket.on("receive-private-message", (data) => {
-  if (data.from === currentChatUser) {
-    addMessage(data.msg, "other");
-  }
+  addMessage(data.msg, "other");
+
+  // send seen
+  socket.emit("message-seen", {
+    to: data.from,
+    id: data.id
+  });
+});
+
+// SEEN TICKS
+socket.on("message-seen", ({ id }) => {
+  const tick = messageMap[id];
+  if (tick) tick.innerText = "✔✔";
 });
 
 // SEND MESSAGE
@@ -173,19 +178,27 @@ function sendMsg() {
   const msg = input.value;
 
   if (!msg.trim()) return;
+  if (!currentChatUser) return alert("Select user");
 
-  if (!currentChatUser) {
-    alert("⚠️ Select a user first");
-    return;
-  }
+  const id = Date.now();
 
-  const fullMsg = username + ": " + msg;
+  const div = document.createElement("div");
+  div.classList.add("msg", "you");
+  div.innerText = msg;
 
-  addMessage(fullMsg, "you");
+  const tick = document.createElement("span");
+  tick.classList.add("tick");
+  tick.innerText = "✔";
+
+  div.appendChild(tick);
+  chat.appendChild(div);
+
+  messageMap[id] = tick;
 
   socket.emit("private-message", {
     to: currentChatUser,
-    msg: fullMsg
+    msg: msg,
+    id
   });
 
   input.value = "";
@@ -198,15 +211,14 @@ function addMessage(msg, type) {
   div.innerText = msg;
 
   chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
 }
 
-// RENDER ONLINE USERS
-function renderUsers() {
+// RENDER USERS
+function renderUsers(users) {
   const box = document.getElementById("users");
   box.innerHTML = "";
 
-  onlineUsers.forEach((user) => {
+  users.forEach(user => {
     const div = document.createElement("div");
     div.classList.add("user");
     div.innerText = "🟢 " + user;
@@ -221,8 +233,8 @@ function renderUsers() {
   });
 }
 
-// ENTER KEY SEND
-document.getElementById("msg").addEventListener("keydown", function(e) {
+// ENTER KEY
+document.getElementById("msg").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
     sendMsg();

@@ -18,50 +18,46 @@ function sendOnlineUsers() {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // ✅ REGISTER USER
+  // ✅ REGISTER
   socket.on("register", (username) => {
     if (!username) return;
 
     socket.username = username;
     users[username] = socket;
 
-    console.log(username + " registered");
-
-    sendOnlineUsers(); // 🔥 update sidebar
+    sendOnlineUsers();
   });
 
-  // ✅ PRIVATE MESSAGE (MAIN FEATURE)
-  socket.on("private-message", ({ to, msg }) => {
-    console.log("Sending to:", to);
-
+  // ✅ SEND MESSAGE WITH ID
+  socket.on("private-message", ({ to, msg, id }) => {
     const target = users[to];
 
     if (target) {
       target.emit("receive-private-message", {
         from: socket.username,
-        msg: msg,
+        msg,
+        id,
       });
-    } else {
-      console.log("User not found:", to);
     }
   });
 
-  // ❌ REMOVE RANDOM CHAT (not needed for WhatsApp UI)
-  // ❌ REMOVE FRIEND SYSTEM (optional, can add later cleanly)
+  // ✅ SEEN (✔✔)
+  socket.on("message-seen", ({ to, id }) => {
+    const target = users[to];
 
-  // ✅ DISCONNECT
+    if (target) {
+      target.emit("message-seen", { id });
+    }
+  });
+
+  // ❌ DISCONNECT
   socket.on("disconnect", () => {
     if (socket.username) {
       delete users[socket.username];
-      sendOnlineUsers(); // 🔥 update list
+      sendOnlineUsers();
     }
-
-    console.log("User disconnected:", socket.id);
   });
 });
 
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-  console.log("Server running on port", PORT);
-});
+server.listen(PORT, () => console.log("Server running"));
